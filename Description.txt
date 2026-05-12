@@ -1,0 +1,360 @@
+STATEFLOW - DESCRIPCION GENERAL DEL SISTEMA
+
+Stateflow es una herramienta de investigacion, escritura visual y organizacion de ideas construida con React. La aplicacion combina la fluidez de un editor de documentos profesional con la libertad visual de una pizarra tipo Excalidraw. Su objetivo es permitir investigar, escribir, conectar ideas, dibujar, insertar contenido multimedia y exportar resultados en un entorno moderno, minimalista, suave e inmersivo.
+
+La experiencia debe sentirse rapida, tactil y premium: cada accion debe responder con animaciones sutiles, transiciones fluidas, sonidos suaves y una interfaz limpia que no interrumpa el flujo creativo.
+
+
+1. PROPOSITO DE LA APLICACION
+
+Stateflow debe servir como un espacio unico para:
+
+- Escribir documentos de investigacion.
+- Crear esquemas visuales.
+- Dibujar ideas a mano alzada.
+- Conectar conceptos mediante flechas y diagramas.
+- Insertar recursos externos como imagenes, videos, audio, PDFs y links embebidos.
+- Organizar conocimiento en un lienzo con zoom y paneo.
+- Exportar el trabajo final como PDF.
+- Mantener historial de cambios para recuperar versiones anteriores.
+
+La aplicacion no debe sentirse como una simple libreta ni como una pizarra aislada. Debe unir ambos mundos: documento estructurado y canvas libre.
+
+
+2. IDENTIDAD VISUAL Y UX/UI
+
+La interfaz debe tener una estetica premium, moderna, minimalista y creativa, inspirada en Excalidraw, pero con una sensacion mas inmersiva y profesional.
+
+Principios visuales:
+
+- Tipografia estilo Excalidraw por defecto para figuras, notas rapidas y elementos visuales.
+- Tipografia profesional para escritura larga tipo documento.
+- Colores suaves, limpios y bien contrastados.
+- Bordes sutiles y controles livianos.
+- Iconografia clara y minimalista.
+- Paneles flotantes discretos.
+- Animaciones suaves al abrir menus, seleccionar herramientas, mover elementos o cambiar de vista.
+- Efectos visuales minimalistas para seleccion, foco, hover, arrastre y edicion.
+
+La UI debe ayudar al usuario a concentrarse. Las herramientas deben estar disponibles sin ocupar demasiado espacio visual.
+
+
+3. EDITOR DE TEXTO
+
+El editor de texto es el area principal para escribir contenido estructurado, notas de investigacion, ensayos, explicaciones y documentos profesionales.
+
+Debe incluir:
+
+- Escritura fluida y rapida.
+- Soporte para parrafos, titulos, subtitulos y listas.
+- Seleccion y edicion de texto sin retrasos perceptibles.
+- Estilo de documento profesional.
+- Buen espaciado, lectura comoda y enfoque visual.
+- Posibilidad de mezclar texto con bloques multimedia.
+- Integracion con el historial de cambios.
+
+Papel dentro de la aplicacion:
+
+El editor representa la parte racional y estructurada del sistema. Sirve para convertir ideas, fuentes y diagramas en contenido escrito claro.
+
+
+4. CANVAS VISUAL TIPO EXCALIDRAW
+
+El canvas es el espacio libre donde el usuario puede crear mapas mentales, diagramas, esquemas y conexiones visuales.
+
+Debe permitir:
+
+- Crear rectangulos.
+- Crear circulos.
+- Crear flechas.
+- Crear diagramas.
+- Dibujar a mano alzada.
+- Mover elementos.
+- Redimensionar elementos.
+- Seleccionar uno o varios elementos.
+- Agrupar ideas visualmente.
+- Conectar conceptos.
+- Trabajar con zoom y paneo.
+
+Papel dentro de la aplicacion:
+
+El canvas representa la parte visual, exploratoria y creativa de Stateflow. Permite pensar sin estructura fija, conectar ideas rapidamente y crear diagramas que complementan la investigacion escrita.
+
+
+5. FIGURAS Y ELEMENTOS GRAFICOS
+
+El sistema debe incluir herramientas para crear elementos visuales basicos:
+
+- Rectangulos para tarjetas, bloques de informacion o secciones.
+- Circulos para conceptos, estados, categorias o nodos.
+- Flechas para relaciones, flujos, causas, procesos o conexiones.
+- Diagramas para explicar estructuras, sistemas y jerarquias.
+- Trazos a mano alzada para bocetos, marcas, anotaciones rapidas y dibujos libres.
+
+Cada elemento debe poder:
+
+- Seleccionarse.
+- Moverse.
+- Redimensionarse.
+- Editarse.
+- Duplicarse.
+- Eliminarse.
+- Cambiar color, borde y estilo cuando corresponda.
+
+Papel dentro de la aplicacion:
+
+Estos elementos convierten la investigacion en un sistema visual. Ayudan a ver relaciones que no siempre aparecen de forma clara en un texto lineal.
+
+
+6. SELECCION MULTIPLE
+
+La seleccion multiple debe permitir trabajar con varios elementos del canvas al mismo tiempo.
+
+Debe incluir:
+
+- Seleccion por arrastre.
+- Seleccion con teclado y click.
+- Movimiento conjunto de elementos.
+- Redimensionado conjunto cuando sea posible.
+- Eliminacion grupal.
+- Copia y duplicacion grupal.
+- Indicadores visuales claros de seleccion.
+
+Papel dentro de la aplicacion:
+
+Permite reorganizar ideas rapidamente y manejar diagramas complejos sin friccion.
+
+
+7. ZOOM INFINITO Y PANEO
+
+El canvas debe permitir navegar de forma libre por un espacio amplio o practicamente infinito.
+
+Debe incluir:
+
+- Zoom suave con rueda del mouse o gestos del trackpad.
+- Paneo fluido.
+- Recentrar vista.
+- Ajustar contenido a pantalla.
+- Mantener buena precision al seleccionar y mover elementos en cualquier nivel de zoom.
+
+Papel dentro de la aplicacion:
+
+El zoom y paneo permiten que Stateflow funcione como un mapa de conocimiento. El usuario puede acercarse al detalle o alejarse para ver la estructura general de su investigacion.
+
+
+8. INSERCION DE MULTIMEDIA Y RECURSOS
+
+Stateflow debe permitir insertar contenido externo dentro del documento o canvas.
+
+Tipos soportados:
+
+- Imagenes.
+- Videos.
+- Audio.
+- PDFs.
+- Links embebidos.
+
+Funciones esperadas:
+
+- Previsualizacion de imagenes.
+- Reproductor de video integrado.
+- Reproductor de audio integrado.
+- Visor o bloque embebido para PDFs.
+- Tarjetas enriquecidas para enlaces.
+- Posibilidad de mover, ordenar o redimensionar recursos dentro del espacio visual.
+
+Papel dentro de la aplicacion:
+
+Los recursos multimedia convierten a Stateflow en una herramienta real de investigacion. Permiten reunir fuentes, evidencias, referencias y material de apoyo en un solo lugar.
+
+
+9. HISTORIAL DE CAMBIOS
+
+El sistema debe guardar el progreso y permitir revisar versiones anteriores.
+
+Debe incluir:
+
+- Historial de acciones.
+- Deshacer y rehacer.
+- Registro de cambios importantes.
+- Recuperacion de estados anteriores.
+- Posible linea de tiempo de versiones en futuras iteraciones.
+
+Papel dentro de la aplicacion:
+
+El historial protege el trabajo del usuario y permite experimentar sin miedo. Es clave para una herramienta creativa y de investigacion.
+
+
+10. EXPORTACION A PDF
+
+La aplicacion debe permitir exportar el contenido final a PDF.
+
+Debe contemplar:
+
+- Exportar documentos escritos.
+- Exportar canvas o diagramas.
+- Exportar una combinacion de texto, imagenes y elementos visuales.
+- Mantener buena legibilidad.
+- Respetar estructura, margenes y escalado.
+- Preparar el resultado para compartir, presentar o archivar.
+
+Papel dentro de la aplicacion:
+
+La exportacion convierte el trabajo interno en un resultado util fuera de Stateflow: informes, entregas, presentaciones, material academico o documentos de investigacion.
+
+
+11. SONIDOS E INTERACCIONES TACTILES
+
+La aplicacion debe incluir una capa sensorial discreta que mejore la sensacion de calidad.
+
+Sonidos esperados:
+
+- Sonido suave al escribir.
+- Sonido de click izquierdo.
+- Sonido de click derecho.
+- Sonidos sutiles para seleccion, acciones importantes o confirmaciones.
+
+Reglas de experiencia:
+
+- Los sonidos deben ser suaves y no invasivos.
+- Debe existir opcion para activar o desactivar sonidos.
+- El audio debe sentirse premium, no distractor.
+- Las respuestas visuales deben acompañar las interacciones principales.
+
+Papel dentro de la aplicacion:
+
+Los sonidos y microinteracciones hacen que la herramienta se sienta viva, precisa y tactil.
+
+
+12. ANIMACIONES Y TRANSICIONES
+
+Las animaciones deben reforzar claridad, fluidez y sensacion premium.
+
+Aplicaciones:
+
+- Transiciones suaves entre estados de UI.
+- Animaciones al abrir paneles.
+- Feedback visual al hacer click.
+- Movimiento fluido de elementos.
+- Indicadores suaves al seleccionar o arrastrar.
+- Efectos minimalistas al insertar contenido.
+
+Papel dentro de la aplicacion:
+
+Las animaciones ayudan a que el usuario entienda que esta ocurriendo sin agregar ruido visual.
+
+
+13. ESTRUCTURA PRINCIPAL DE LA APLICACION
+
+La aplicacion puede organizarse en los siguientes apartados:
+
+A. Area de trabajo principal
+
+Es el centro de la aplicacion. Contiene el documento, el canvas o ambos segun el modo de trabajo activo.
+
+B. Barra de herramientas
+
+Contiene accesos a herramientas como seleccion, texto, rectangulo, circulo, flecha, dibujo libre, insertar multimedia, zoom y exportar.
+
+C. Panel de propiedades
+
+Permite editar propiedades del elemento seleccionado: color, borde, tamaño, posicion, tipografia, enlace o configuracion multimedia.
+
+D. Panel de paginas o espacios
+
+Permite organizar diferentes documentos, mapas, secciones o areas de investigacion.
+
+E. Historial y versiones
+
+Permite deshacer, rehacer y revisar cambios relevantes.
+
+F. Sistema de exportacion
+
+Gestiona la salida a PDF y futuras opciones de exportacion.
+
+G. Configuracion de experiencia
+
+Permite controlar sonidos, animaciones, tema visual, preferencias de escritura y comportamiento del editor.
+
+
+14. MODOS DE TRABAJO
+
+Stateflow debe poder funcionar con varios modos:
+
+- Modo documento: enfocado en escritura profesional.
+- Modo canvas: enfocado en diagramas, dibujos y mapas visuales.
+- Modo mixto: combina documento y canvas en una misma experiencia.
+- Modo presentacion o lectura: oculta herramientas y muestra el contenido de forma limpia.
+
+Papel dentro de la aplicacion:
+
+Los modos permiten adaptar la herramienta al momento mental del usuario: escribir, explorar, organizar o presentar.
+
+
+15. PRIORIDADES DE DESARROLLO
+
+Primera etapa:
+
+- Crear estructura React.
+- Crear layout principal.
+- Implementar editor de texto basico.
+- Implementar canvas con seleccion, movimiento y figuras basicas.
+- Agregar zoom y paneo.
+- Crear sistema inicial de historial con deshacer y rehacer.
+
+Segunda etapa:
+
+- Agregar dibujo a mano alzada.
+- Agregar insercion de imagenes y links.
+- Mejorar seleccion multiple.
+- Crear panel de propiedades.
+- Agregar microinteracciones y transiciones.
+
+Tercera etapa:
+
+- Agregar videos, audio y PDFs.
+- Implementar exportacion PDF.
+- Agregar sonidos configurables.
+- Mejorar historial de versiones.
+- Pulir UX/UI premium.
+
+Cuarta etapa:
+
+- Optimizar rendimiento.
+- Agregar persistencia local o en nube.
+- Preparar colaboracion futura.
+- Mejorar accesibilidad.
+- Agregar plantillas de investigacion.
+
+
+16. PRINCIPIOS TECNICOS PARA REACT
+
+La implementacion en React debe priorizar:
+
+- Componentes claros y reutilizables.
+- Estado bien organizado.
+- Separacion entre editor, canvas, herramientas, paneles y persistencia.
+- Rendimiento alto en el canvas.
+- Manejo eficiente de eventos de mouse, teclado y gestos.
+- Arquitectura preparada para crecer.
+- Persistencia del estado del documento y elementos visuales.
+- Exportacion y carga de proyectos.
+
+Posibles modulos:
+
+- EditorTextual.
+- CanvasVisual.
+- Toolbar.
+- PanelPropiedades.
+- MediaEmbed.
+- HistoryManager.
+- ExportManager.
+- SoundManager.
+- WorkspaceState.
+
+
+17. SENSACION FINAL BUSCADA
+
+Stateflow debe sentirse como una herramienta de pensamiento avanzada: limpia como un editor profesional, libre como una pizarra creativa, rapida como una app moderna y agradable como un producto premium.
+
+El usuario debe poder entrar, escribir, dibujar, conectar, insertar referencias y exportar sin sentir que cambia de aplicacion. Todo debe sentirse integrado, suave y enfocado en ayudar a pensar mejor.

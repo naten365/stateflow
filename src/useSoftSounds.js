@@ -70,10 +70,43 @@ export default function useSoftSounds(enabled, keyboardVolume) {
 
   const playPencil = useCallback(() => {
     const now = performance.now();
-    if (!enabled || now - lastPencilSound.current < 70) return;
+    if (!enabled || now - lastPencilSound.current < 50) return;
     lastPencilSound.current = now;
-    playTone({ frequencies: [920 + Math.random() * 80], duration: 0.075, volume: 0.009, filter: 1800, type: 'triangle', slide: 0.96 });
-  }, [enabled, playTone]);
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const context = contextRef.current || new AudioContext();
+    contextRef.current = context;
+    if (context.state === 'suspended') context.resume();
+
+    const duration = 0.03 + Math.random() * 0.03;
+    const sampleRate = context.sampleRate;
+    const bufferSize = Math.floor(sampleRate * duration);
+    const buffer = context.createBuffer(1, bufferSize, sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 1.5);
+    }
+
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = context.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 2500 + Math.random() * 1500;
+    filter.Q.value = 0.4 + Math.random() * 0.4;
+
+    const gain = context.createGain();
+    const t = context.currentTime;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.012, t + 0.003);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(context.destination);
+    source.start(t);
+    source.stop(t + duration + 0.01);
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled) return;

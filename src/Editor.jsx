@@ -511,8 +511,8 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
     const nextPage = {
       id,
       title: `Documento ${pages.length + 1}`,
-      x: activePage.x + 120,
-      y: activePage.y + 120,
+      x: activePage.x + PAGE_WIDTH + 40,
+      y: activePage.y,
       html: '',
     };
     pageHtmlRef.current[id] = nextPage.html;
@@ -528,11 +528,25 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
     if (!page) return;
     recordHistory();
     const id = crypto.randomUUID();
-    const copy = { ...page, id, html: pageHtmlRef.current[page.id] || page.html, title: `${page.title} copia`, x: page.x + 90, y: page.y + 90 };
+    const copy = { ...page, id, html: pageHtmlRef.current[page.id] || page.html, title: `${page.title} copia`, x: page.x + PAGE_WIDTH + 40, y: page.y };
     pageHtmlRef.current[id] = copy.html;
     setPages((items) => [...items, copy]);
     setActivePageId(id);
   }, [activePageId, pages, recordHistory]);
+
+  const reorganizePages = useCallback(() => {
+    recordHistory();
+    const gapX = 40;
+    const gapY = 60;
+    const startX = 120;
+    const startY = 90;
+    const cols = 2;
+    setPages((items) => items.map((page, index) => ({
+      ...page,
+      x: startX + (index % cols) * (PAGE_WIDTH + gapX),
+      y: startY + Math.floor(index / cols) * (PAGE_HEIGHT + gapY),
+    })));
+  }, [recordHistory]);
 
   const deletePage = useCallback((pageId = activePageId) => {
     recordHistory();
@@ -938,6 +952,7 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
     let delta = event.deltaY;
     if (event.deltaMode === 1) delta *= 30;
     else if (event.deltaMode === 2) delta *= 600;
+    if (event.ctrlKey) delta *= 4;
     zoomAt(event.clientX, event.clientY, viewport.zoom * Math.exp(-delta * 0.0012));
   };
 
@@ -947,6 +962,17 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
     const handler = (event) => wheelHandlerRef.current(event);
     stage.addEventListener('wheel', handler, { passive: false });
     return () => stage.removeEventListener('wheel', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = (event) => {
+      if (modeRef.current === 'writing') return;
+      if (event.target.closest('.canvas-stage')) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener('wheel', handler, { passive: false });
+    return () => window.removeEventListener('wheel', handler);
   }, []);
 
   const exportPdf = async () => {
@@ -1261,6 +1287,7 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
         <section className="sidebar-section">
           <span className="section-label">Hojas</span>
           <button className="primary-control" type="button" onClick={createPage}>Crear hoja</button>
+          <button className="wide-toggle" type="button" onClick={reorganizePages}>Reorganizar hojas</button>
           <div className="page-list">
             {pages.map((page) => (
               <button key={page.id} className={page.id === activePageId ? 'page-list-item active' : 'page-list-item'} type="button" onClick={() => focusPage(page.id)}>

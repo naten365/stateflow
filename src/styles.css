@@ -30,6 +30,7 @@ body,
 
 body {
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 button,
@@ -64,6 +65,7 @@ button {
   overflow: hidden;
   background: var(--bg);
   color: var(--ink);
+  touch-action: none;
   transition: background 200ms ease, color 200ms ease;
 }
 
@@ -1305,6 +1307,62 @@ input[type="range"]::-moz-range-thumb {
 .project-delete:hover {
   background: rgba(0, 0, 0, 0.04);
   color: #000000;
+}
+
+/* Trash */
+.trash-section {
+  margin-top: 40px;
+}
+
+.trash-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  color: #9c9c9c;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.trash-toggle:hover {
+  color: #000000;
+}
+
+.trash-grid {
+  margin-top: 12px;
+}
+
+.trash-card {
+  opacity: 0.5;
+  transition: opacity 150ms ease;
+}
+
+.trash-card:hover {
+  opacity: 1;
+}
+
+.trash-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.project-delete.permanent-delete:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #000000;
+}
+
+[data-theme="dark"] .trash-toggle:hover {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .project-delete.permanent-delete:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -7,6 +7,7 @@ export default function LoginPage() {
   const { signIn, signUp } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState(null);
   const [mode, setMode] = useState('login');
   const [message, setMessage] = useState(null);
@@ -34,6 +35,11 @@ export default function LoginPage() {
     setError(null);
     setMessage(null);
 
+    if (mode === 'register' && password !== confirmPassword) {
+      setError('Las contrasenas no coinciden.');
+      return;
+    }
+
     try {
       if (mode === 'login') {
         await signIn(email, password);
@@ -42,9 +48,7 @@ export default function LoginPage() {
         setMessage('Cuenta creada. Revisa tu correo para confirmar el registro.');
       }
     } catch (err) {
-      setError(err.message === 'Invalid login credentials'
-        ? 'Correo o contrasena incorrectos'
-        : err.message);
+      setError('Correo o contrasena incorrectos.');
     }
   };
 
@@ -87,9 +91,25 @@ export default function LoginPage() {
               placeholder="••••••••"
               required
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              minLength={6}
+              minLength={8}
             />
           </label>
+
+          {mode === 'register' && (
+            <label className="login-label">
+              Confirmar contrasena
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder="••••••••"
+                required
+                autoComplete="new-password"
+                minLength={8}
+              />
+            </label>
+          )}
 
           {error && <p className="login-error">{error}</p>}
           {message && <p className="login-success">{message}</p>}
@@ -110,7 +130,7 @@ export default function LoginPage() {
           ) : (
             <>
               ¿Ya tienes cuenta?{' '}
-              <button type="button" onMouseDown={() => playLeftClick()} onClick={() => { setMode('login'); setError(null); setMessage(null); }}>
+              <button type="button" onMouseDown={() => playLeftClick()} onClick={() => { setMode('login'); setError(null); setMessage(null); setConfirmPassword(''); }}>
                 Inicia sesion
               </button>
             </>

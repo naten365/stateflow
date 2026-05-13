@@ -35,6 +35,8 @@ export default function Dashboard({ onSelectProject, signOut, theme, setTheme })
   const createProject = async (e) => {
     e.preventDefault();
     if (!newName.trim()) return;
+    if (newName.trim().length > 255) return;
+    if (newDesc.trim().length > 500) return;
 
     const { data, error } = await supabase
       .from('projects')
@@ -145,6 +147,7 @@ export default function Dashboard({ onSelectProject, signOut, theme, setTheme })
               onKeyDown={onKeyDown}
               autoFocus
               required
+              maxLength={255}
             />
             <input
               type="text"
@@ -152,6 +155,7 @@ export default function Dashboard({ onSelectProject, signOut, theme, setTheme })
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
               onKeyDown={onKeyDown}
+              maxLength={500}
             />
             <div className="create-form-actions">
               <button type="submit" className="dashboard-btn primary" onMouseDown={() => playLeftClick()}>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import DOMPurify from 'dompurify';
 import { supabase } from './supabaseClient';
 import useSoftSounds from './useSoftSounds';
 
@@ -31,57 +32,13 @@ const initialProject = {
   lineHeight: 1.68,
 };
 
-const allowedHtmlTags = new Set(['B', 'I', 'U', 'STRONG', 'EM', 'BR', 'DIV', 'P', 'SPAN', 'UL', 'OL', 'LI', 'H1', 'H2', 'H3', 'FONT']);
-const allowedStyleProps = new Set(['color', 'font-size', 'font-weight', 'font-style', 'text-decoration', 'line-height', 'font-family']);
-
-function sanitizeInlineStyle(styleText) {
-  return styleText
-    .split(';')
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-    .map((entry) => {
-      const [rawName, ...rawValue] = entry.split(':');
-      const name = rawName?.trim().toLowerCase();
-      const value = rawValue.join(':').trim();
-      if (!allowedStyleProps.has(name) || !value) return '';
-      if (/expression|javascript:|url\s*\(/i.test(value)) return '';
-      if (name === 'font-size' && !/^\d{1,3}(\.\d+)?(px|rem|em|%)$/i.test(value)) return '';
-      return `${name}: ${value}`;
-    })
-    .filter(Boolean)
-    .join('; ');
-}
-
 function sanitizeHtml(html = '') {
-  if (typeof document === 'undefined') return html;
-  const template = document.createElement('template');
-  template.innerHTML = html;
-
-  template.content.querySelectorAll('script, style, iframe, object, embed, link, meta').forEach((node) => node.remove());
-  template.content.querySelectorAll('*').forEach((node) => {
-    if (!allowedHtmlTags.has(node.tagName)) {
-      node.replaceWith(...Array.from(node.childNodes));
-      return;
-    }
-
-    Array.from(node.attributes).forEach((attribute) => {
-      const name = attribute.name.toLowerCase();
-      if (name.startsWith('on') || name === 'class' || name === 'id') {
-        node.removeAttribute(attribute.name);
-        return;
-      }
-      if (name === 'style') {
-        const safeStyle = sanitizeInlineStyle(attribute.value);
-        if (safeStyle) node.setAttribute('style', safeStyle);
-        else node.removeAttribute('style');
-        return;
-      }
-      if (node.tagName === 'FONT' && name === 'size') return;
-      node.removeAttribute(attribute.name);
-    });
+  if (!html) return '';
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['b', 'i', 'u', 'strong', 'em', 'br', 'div', 'p', 'span', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'font'],
+    ALLOWED_ATTR: ['style', 'color', 'size', 'face'],
+    ALLOWED_STYLE: ['color', 'font-size', 'font-weight', 'font-style', 'text-decoration', 'line-height', 'font-family'],
   });
-
-  return template.innerHTML;
 }
 
 function colorWithAlpha(color, alpha = 1) {
@@ -92,6 +49,19 @@ function colorWithAlpha(color, alpha = 1) {
   const g = parseInt(normalized.slice(2, 4), 16);
   const b = parseInt(normalized.slice(4, 6), 16);
   return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, alpha))})`;
+}
+
+async function validateImageMagicBytes(file) {
+  const header = await file.slice(0, 8).arrayBuffer();
+  const bytes = new Uint8Array(header);
+  const signatures = [
+    { bytes: [0x89, 0x50, 0x4E, 0x47], name: 'PNG' },
+    { bytes: [0xFF, 0xD8, 0xFF], name: 'JPEG' },
+    { bytes: [0x47, 0x49, 0x46], name: 'GIF' },
+    { bytes: [0x42, 0x4D], name: 'BMP' },
+    { bytes: [0x52, 0x49, 0x46, 0x46], name: 'WEBP' },
+  ];
+  return signatures.some((sig) => sig.bytes.every((b, i) => bytes[i] === b));
 }
 
 function loadInitialProject() {
@@ -495,7 +465,7 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
     sizedNodes.forEach((node) => {
       const span = document.createElement('span');
       span.style.fontSize = `${size}px`;
-      span.innerHTML = node.innerHTML;
+      span.innerHTML = sanitizeHtml(node.innerHTML);
       node.replaceWith(span);
     });
     syncEditorHtml(activePageId);
@@ -618,7 +588,7 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
     const html = sanitizeHtml(pageHtmlRef.current[pageId] ?? '');
     pageHtmlRef.current[pageId] = html;
     const editor = editorRefs.current[pageId];
-    if (editor && editor.innerHTML !== html) editor.innerHTML = html;
+    if (editor && editor.innerHTML !== html) editor.innerHTML = sanitizeHtml(html);
     setPages((items) => items.map((page) => (page.id === pageId ? { ...page, html } : page)));
   }, []);
 
@@ -1214,6 +1184,9 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
 
   const readImageFile = useCallback(async (file, pageId, point) => {
     if (!file?.type?.startsWith('image/')) return;
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) { alert('La imagen es demasiado grande. Maximo 10 MB.'); return; }
+    if (!(await validateImageMagicBytes(file))) { alert('El archivo no parece ser una imagen valida.'); return; }
     try {
       const { url, path } = await uploadImage(file);
       addImage(url, pageId, point, file.width || 320, file.height || 220, path);
@@ -1600,7 +1573,7 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
                   editorRefs.current[page.id] = node;
                   const renderKey = `${page.id}:${editorRenderVersion}`;
                   if (node.dataset.renderKey !== renderKey) {
-                    node.innerHTML = pageHtmlRef.current[page.id] ?? page.html ?? '';
+                    node.innerHTML = sanitizeHtml(pageHtmlRef.current[page.id] ?? page.html ?? '');
                     node.dataset.renderKey = renderKey;
                   }
                 }}
@@ -1724,9 +1697,9 @@ function renderElementContent(element, editing, textRef, onTextInput, playType, 
         ref={(node) => {
           if (!node) return;
           textRef(node);
-          if (!editing && node.innerHTML !== (element.text || '')) node.innerHTML = element.text || '';
+          if (!editing && node.innerHTML !== (element.text || '')) node.innerHTML = sanitizeHtml(element.text || '');
           if (!node.dataset.textElementId) {
-            node.innerHTML = element.text || '';
+            node.innerHTML = sanitizeHtml(element.text || '');
             node.dataset.textElementId = element.id;
           }
         }}

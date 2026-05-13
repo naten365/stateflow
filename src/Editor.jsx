@@ -201,6 +201,8 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
   const pinchRef = useRef(null);
   const textEditSessionRef = useRef(null);
   const saveTimerRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const pendingUploadsRef = useRef(null);
   const [pages, setPages] = useState(initialProjectRef.current.pages);
   const [elements, setElements] = useState(initialProjectRef.current.elements);
   const [selectedElementIds, setSelectedElementIds] = useState([]);
@@ -221,6 +223,7 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
   const [exportError, setExportError] = useState(null);
   const [saveState, setSaveState] = useState({ status: 'saved', error: null, savedAt: null });
   const [editorRenderVersion, setEditorRenderVersion] = useState(0);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [lineHeight, setLineHeight] = useState(initialProjectRef.current.lineHeight ?? 1.68);
   const { playType, playPencil, playLeftClick, playRightClick } = useSoftSounds(soundsEnabled, keyboardVolume);
 
@@ -281,6 +284,43 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
       }
     }, 180);
   }, [serializeProject]);
+
+  const saveNow = useCallback(() => {
+    window.clearTimeout(saveTimerRef.current);
+    const data = serializeProject();
+    localStorage.setItem(PROJECT_KEY, JSON.stringify(data));
+    const pid = projectIdRef.current;
+    if (pid) {
+      return supabase
+        .from('projects')
+        .update({
+          pages: data.pages,
+          elements: data.elements,
+          viewport: data.viewport,
+          active_page_id: data.activePageId,
+          document_font: data.documentFont,
+          line_height: data.lineHeight,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', pid)
+        .eq('user_id', userIdRef.current)
+        .then(() => {
+          setSaveState({ status: 'saved', error: null, savedAt: new Date() });
+        })
+        .catch((err) => {
+          setSaveState({ status: 'error', error: err?.message || 'No se pudo guardar', savedAt: null });
+        });
+    } else {
+      setSaveState({ status: 'saved', error: null, savedAt: new Date() });
+      return Promise.resolve();
+    }
+  }, [serializeProject]);
+
+  const handleBack = useCallback(async () => {
+    if (pendingUploadsRef.current) await pendingUploadsRef.current;
+    await saveNow();
+    onBack();
+  }, [saveNow, onBack]);
 
   useEffect(() => {
     pagesRef.current = pages;
@@ -691,6 +731,15 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
     setElements((items) => items.map((element) => (element.id === id ? { ...element, ...patch } : element)));
   }, []);
 
+  const duplicateElement = useCallback((elementId) => {
+    const target = elements.find((item) => item.id === elementId);
+    if (!target) return;
+    recordHistory();
+    const id = crypto.randomUUID();
+    setElements((items) => [...items, { ...target, id, x: target.x + 30, y: target.y + 30 }]);
+    setSelectedElementIds([id]);
+  }, [elements, recordHistory]);
+
   const updateSelectedTextElements = useCallback((patch) => {
     if (!selectedTextElements.length) return;
     recordHistory();
@@ -750,6 +799,7 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
     }
     if (event.target.closest('.page-sheet')) {
       if (editingTextId) setEditingTextId(null);
+      setSelectedElementIds([]);
       return;
     }
     if (editingTextId) { setEditingTextId(null); return; }
@@ -1101,50 +1151,112 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
     dragRef.current = { type: 'element', ids, x: event.clientX, y: event.clientY };
   };
 
-  const addImage = useCallback((src, pageId, point) => {
+  const addImage = useCallback((src, pageId, point, naturalW, naturalH, storagePath) => {
     recordHistory();
     const id = crypto.randomUUID();
+    const MAX_W = 500;
+    const MAX_H = 420;
+    let w = naturalW || 320;
+    let h = naturalH || 220;
+    if (w > MAX_W) { h = (h / w) * MAX_W; w = MAX_W; }
+    if (h > MAX_H) { w = (w / h) * MAX_H; h = MAX_H; }
     setElements((items) => [...items, {
-      id,
-      pageId,
-      type: 'image',
-      src,
-      x: point.x,
-      y: point.y,
-      w: 320,
-      h: 220,
-      rotation: 0,
-      stroke: '#000000',
-      fill: 'transparent',
+      id, pageId, type: 'image', src, storagePath: storagePath || '',
+      x: point.x, y: point.y, w: Math.round(w), h: Math.round(h),
+      rotation: 0, stroke: 'transparent', fill: 'transparent',
     }]);
     setSelectedElementIds([id]);
   }, [recordHistory]);
 
-  const readImageFile = useCallback((file, pageId, point) => {
+  const deleteStorageImage = useCallback(async (path) => {
+    if (!path) return;
+    await supabase.storage.from('project-images').remove([path]).catch(() => {});
+  }, []);
+
+  const deleteElements = useCallback((ids) => {
+    const targets = elements.filter((el) => ids.includes(el.id));
+    recordHistory();
+    targets.forEach((el) => {
+      if (el.type === 'image' && el.storagePath) deleteStorageImage(el.storagePath);
+    });
+    setElements((items) => items.filter((el) => !ids.includes(el.id)));
+    setSelectedElementIds([]);
+  }, [elements, recordHistory, deleteStorageImage]);
+
+  const uploadImage = useCallback(async (file) => {
+    const ext = file.name.split('.').pop() || 'png';
+    const fileName = `${crypto.randomUUID()}.${ext}`;
+    const filePath = `${user.id}/${projectId}/${fileName}`;
+    const { error } = await supabase.storage
+      .from('project-images')
+      .upload(filePath, file, { upsert: false, contentType: file.type });
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage
+      .from('project-images')
+      .getPublicUrl(filePath);
+    return { url: publicUrl, path: filePath };
+  }, [user, projectId]);
+
+  const readImageFile = useCallback(async (file, pageId, point) => {
     if (!file?.type?.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => addImage(reader.result, pageId, point);
-    reader.readAsDataURL(file);
-  }, [addImage]);
+    try {
+      const { url, path } = await uploadImage(file);
+      addImage(url, pageId, point, file.width || 320, file.height || 220, path);
+    } catch {
+      const src = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+      addImage(src, pageId, point, 320, 220, '');
+    }
+  }, [addImage, uploadImage]);
+
+  const handleImageFiles = useCallback((event) => {
+    const files = event.target.files;
+    if (!files?.length) return;
+    const page = activePage;
+    if (!page) return;
+    const promise = (async () => {
+      setUploadingImages(true);
+      try {
+        for (const file of files) {
+          await readImageFile(file, page.id, { x: 80 + Math.random() * 40, y: 80 + Math.random() * 40 });
+        }
+      } finally {
+        setUploadingImages(false);
+        event.target.value = '';
+        pendingUploadsRef.current = null;
+      }
+    })();
+    pendingUploadsRef.current = promise;
+  }, [activePage, readImageFile]);
 
   const onDrop = (event) => {
     event.preventDefault();
     const pageHit = getPagePoint(event);
     if (!pageHit) return;
-    Array.from(event.dataTransfer.files).forEach((file) => readImageFile(file, pageHit.page.id, pageHit.point));
+    Array.from(event.dataTransfer.files).forEach((file) => {
+      readImageFile(file, pageHit.page.id, pageHit.point);
+    });
   };
 
   const onAppContextMenu = (event) => {
-    const pageNode = event.target.closest?.('.page-sheet');
     playRightClick();
     if (mode === 'canvas') event.preventDefault();
-    if (!pageNode || mode !== 'canvas' || hasTextSelection()) {
-      setContextMenu(null);
+    if (mode !== 'canvas' || hasTextSelection()) { setContextMenu(null); return; }
+    const elementNode = event.target.closest?.('.canvas-element');
+    if (elementNode) {
+      const elementId = elementNode.dataset.elementId;
+      setSelectedElementIds((prev) => prev.includes(elementId) ? prev : [elementId]);
+      setContextMenu({ type: 'element', elementId, x: event.clientX, y: event.clientY });
       return;
     }
+    const pageNode = event.target.closest?.('.page-sheet');
+    if (!pageNode) { setContextMenu(null); return; }
     const pageId = pageNode.dataset.pageId;
     setActivePageId(pageId);
-    setContextMenu({ pageId, x: event.clientX, y: event.clientY });
+    setContextMenu({ type: 'page', pageId, x: event.clientX, y: event.clientY });
   };
 
   useEffect(() => {
@@ -1164,9 +1276,7 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
       }
       if ((event.key === 'Backspace' || event.key === 'Delete') && mode === 'canvas' && selectedElementIds.length) {
         event.preventDefault();
-        recordHistory();
-        setElements((items) => items.filter((element) => !selectedElementIds.includes(element.id)));
-        setSelectedElementIds([]);
+        deleteElements(selectedElementIds);
       }
     };
     const onPaste = (event) => {
@@ -1257,9 +1367,7 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
             type="button"
             disabled={!selectedElementIds.length}
             onClick={() => {
-              recordHistory();
-              setElements((items) => items.filter((element) => !selectedElementIds.includes(element.id)));
-              setSelectedElementIds([]);
+              deleteElements(selectedElementIds);
             }}
           >
             Eliminar seleccion
@@ -1387,6 +1495,13 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
         )}
 
         <section className="sidebar-section">
+          <span className="section-label">Imagen</span>
+          <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleImageFiles} />
+           <button className="wide-toggle" type="button" onClick={() => imageInputRef.current?.click()} disabled={uploadingImages}>{uploadingImages ? 'Subiendo...' : 'Importar imagenes'}</button>
+          <p className="helper-text">O arrastra y suelta imagenes directamente en la hoja.</p>
+        </section>
+
+        <section className="sidebar-section">
           <span className="section-label">Exportar</span>
           <button className="primary-control" type="button" onClick={exportPdf} disabled={exporting}>{exporting ? 'Exportando...' : 'Exportar PDF'}</button>
           {exportError && <p style={{ color: '#e03131', fontSize: 11, margin: '4px 0 0' }}>Error: {exportError}</p>}
@@ -1396,15 +1511,24 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
         <section className="sidebar-section">
           <span className="section-label">Proyecto</span>
           <p className="helper-text" style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{projectName}</p>
-          <button className="wide-toggle" type="button" onClick={() => { scheduleSave(); onBack(); }}>Volver al dashboard</button>
+          <button className="wide-toggle" type="button" onClick={handleBack}>Volver al dashboard</button>
         </section>
       </aside>
 
       <section ref={stageRef} className="canvas-stage" aria-label="Canvas infinito" onPointerDown={onCanvasPointerDown} onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
         {contextMenu && (
           <div className="context-menu" style={{ left: contextMenu.x, top: contextMenu.y }} onPointerDown={(event) => event.stopPropagation()}>
-            <button type="button" onClick={() => { duplicatePage(contextMenu.pageId); setContextMenu(null); }}>Duplicar hoja</button>
-            <button type="button" onClick={() => { deletePage(contextMenu.pageId); setContextMenu(null); }}>Eliminar hoja</button>
+            {contextMenu.type === 'element' ? (
+              <>
+                <button type="button" onClick={() => { duplicateElement(contextMenu.elementId); setContextMenu(null); }}>Duplicar</button>
+                <button type="button" onClick={() => { deleteElements([contextMenu.elementId]); setContextMenu(null); }}>Eliminar</button>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={() => { duplicatePage(contextMenu.pageId); setContextMenu(null); }}>Duplicar hoja</button>
+                <button type="button" onClick={() => { deletePage(contextMenu.pageId); setContextMenu(null); }}>Eliminar hoja</button>
+              </>
+            )}
           </div>
         )}
         <div className="world" style={{ transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})` }}>
@@ -1521,7 +1645,7 @@ function CanvasElement({ element, selected, editing, onPointerDown, onResizeStar
   }
 
   return (
-    <div className={`canvas-element ${selected ? 'selected' : ''} ${editing ? 'editing' : ''}`} data-type={element.type} style={style} onPointerDown={onPointerDown} onDoubleClick={onDoubleClick}>
+    <div className={`canvas-element ${selected ? 'selected' : ''} ${editing ? 'editing' : ''}`} data-type={element.type} data-element-id={element.id} style={style} onPointerDown={onPointerDown} onDoubleClick={onDoubleClick}>
       {renderElementContent(element, editing, textRef, onTextInput, playType, onTextResize)}
       {selected && !editing && (
         <>

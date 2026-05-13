@@ -225,11 +225,16 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
   const [editorRenderVersion, setEditorRenderVersion] = useState(0);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [lineHeight, setLineHeight] = useState(initialProjectRef.current.lineHeight ?? 1.68);
+  const [shapeStroke, setShapeStroke] = useState(() => theme === 'dark' ? '#ffffff' : '#1f1f1f');
+  const [shapeFill, setShapeFill] = useState('transparent');
   const { playType, playPencil, playLeftClick, playRightClick } = useSoftSounds(soundsEnabled, keyboardVolume);
 
   const activePage = pages.find((page) => page.id === activePageId) ?? pages[0];
   const selectedTextElements = elements.filter((element) => selectedElementIds.includes(element.id) && element.type === 'text');
   const primaryTextElement = selectedTextElements[0] ?? null;
+  const shapeTypes = new Set(['rect', 'circle', 'ellipse', 'line', 'arrow', 'triangle', 'diamond', 'polygon', 'pencil']);
+  const selectedShapeElements = elements.filter((element) => selectedElementIds.includes(element.id) && shapeTypes.has(element.type));
+  const primaryShapeElement = selectedShapeElements[0] ?? null;
   const saveStatusText = saveState.status === 'saving'
     ? 'Guardando...'
     : saveState.status === 'error'
@@ -686,8 +691,8 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
       w: box.w,
       h: box.h,
       rotation: 0,
-      stroke: '#1f1f1f',
-      fill: 'transparent',
+      stroke: shapeStroke,
+      fill: shapeFill,
       text: '',
     };
     if (type === 'line' || type === 'arrow') {
@@ -750,6 +755,16 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
     )));
   }, [recordHistory, selectedTextElements]);
 
+  const updateSelectedShapeElements = useCallback((patch) => {
+    if (!selectedShapeElements.length) return;
+    recordHistory();
+    setElements((items) => items.map((element) => (
+      selectedShapeElements.some((selected) => selected.id === element.id)
+        ? { ...element, ...patch }
+        : element
+    )));
+  }, [recordHistory, selectedShapeElements]);
+
   const hasTextSelection = () => {
     const selection = window.getSelection();
     return Boolean(selection && !selection.isCollapsed && selection.toString().trim());
@@ -781,7 +796,7 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
       setActivePageId(page.id);
       if (activeTool === 'pencil') {
         const id = crypto.randomUUID();
-        const element = { id, pageId: page.id, type: 'pencil', points: [point], x: point.x, y: point.y, w: 1, h: 1, rotation: 0, stroke: '#1f1f1f', fill: 'transparent' };
+        const element = { id, pageId: page.id, type: 'pencil', points: [point], x: point.x, y: point.y, w: 1, h: 1, rotation: 0, stroke: shapeStroke, fill: shapeFill };
         setElements((items) => [...items, element]);
         setSelectedElementIds([id]);
         dragRef.current = { type: 'pencil', id };
@@ -1490,6 +1505,45 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
                 <span>{Math.round((primaryTextElement.fillAlpha ?? 0.86) * 100)}%</span>
               </label>
               <input id="text-fill-alpha" type="range" min="0" max="1" step="0.05" value={primaryTextElement.fillAlpha ?? 0.86} onMouseDown={(event) => event.preventDefault()} onChange={(event) => updateSelectedTextElements({ fillAlpha: Number(event.target.value) })} />
+            </div>
+          </section>
+        )}
+
+        {primaryShapeElement && (
+          <section className="sidebar-section">
+            <span className="section-label">Figura</span>
+            <div className="inspector-group">
+              <span>Contorno</span>
+              <div className="color-row">
+                {colors.map((color) => (
+                  <button
+                    key={`shape-stroke-${color}`}
+                    className={primaryShapeElement.stroke === color ? 'color-dot active' : 'color-dot'}
+                    type="button"
+                    style={{ '--swatch': color }}
+                    aria-label={`Contorno ${color}`}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => { setShapeStroke(color); updateSelectedShapeElements({ stroke: color }); }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="inspector-group">
+              <span>Fondo</span>
+              <div className="color-row">
+                {fillColors.map((color) => (
+                  <button
+                    key={`shape-fill-${color}`}
+                    className={primaryShapeElement.fill === color ? 'color-dot active' : 'color-dot'}
+                    type="button"
+                    style={{ '--swatch': color }}
+                    aria-label={`Fondo ${color}`}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => { setShapeFill(color); updateSelectedShapeElements({ fill: color }); }}
+                  />
+                ))}
+              </div>
+              <button className="wide-toggle subtle" type="button" onClick={() => updateSelectedShapeElements({ fill: 'transparent' })}>Fondo transparente</button>
             </div>
           </section>
         )}

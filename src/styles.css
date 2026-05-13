@@ -606,10 +606,20 @@ input[type="range"]::-moz-range-thumb {
   height: 100vh;
   overflow: hidden;
   touch-action: none;
+}
+
+.app-shell[data-tool="select"].canvas-mode .canvas-stage {
   cursor: grab;
 }
 
-.app-shell[data-tool="text"].canvas-mode .canvas-stage,
+.app-shell[data-tool="select"].canvas-mode .canvas-stage:active {
+  cursor: grabbing;
+}
+
+.app-shell[data-tool="text"].canvas-mode .canvas-stage {
+  cursor: crosshair;
+}
+
 .app-shell[data-tool="rect"].canvas-mode .canvas-stage,
 .app-shell[data-tool="circle"].canvas-mode .canvas-stage,
 .app-shell[data-tool="ellipse"].canvas-mode .canvas-stage,
@@ -622,11 +632,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .app-shell[data-tool="pencil"].canvas-mode .canvas-stage {
-  cursor: cell;
-}
-
-.canvas-stage:active {
-  cursor: grabbing;
+  cursor: crosshair;
 }
 
 .world {
@@ -657,7 +663,14 @@ input[type="range"]::-moz-range-thumb {
     0 12px 24px rgba(0, 0, 0, 0.03);
   overflow: hidden;
   transform-origin: 0 0;
-  cursor: grab;
+}
+
+.canvas-mode .page-sheet {
+  cursor: move;
+}
+
+.canvas-mode .page-sheet:active {
+  cursor: grabbing;
 }
 
 .page-sheet.active {
@@ -682,13 +695,16 @@ input[type="range"]::-moz-range-thumb {
 .canvas-element {
   position: absolute;
   transform-origin: center;
-  cursor: grab;
   user-select: none;
   touch-action: none;
   pointer-events: auto;
 }
 
-.canvas-element:active {
+.canvas-mode .canvas-element {
+  cursor: move;
+}
+
+.canvas-mode .canvas-element:active {
   cursor: grabbing;
 }
 
@@ -736,10 +752,13 @@ input[type="range"]::-moz-range-thumb {
   white-space: pre-wrap;
   overflow-wrap: break-word;
   overflow: auto;
-  cursor: text;
   pointer-events: none;
   user-select: text;
   transition: border-color 150ms ease;
+}
+
+.canvas-element.editing .canvas-textbox {
+  cursor: text;
 }
 
 .canvas-element.selected .canvas-textbox {
@@ -752,7 +771,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .canvas-mode .canvas-textbox:not([contenteditable="true"]) {
-  cursor: grab;
+  cursor: move;
   user-select: none;
 }
 

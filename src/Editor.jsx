@@ -952,27 +952,13 @@ export default function Editor({ projectId, onBack, user, theme, setTheme }) {
     let delta = event.deltaY;
     if (event.deltaMode === 1) delta *= 30;
     else if (event.deltaMode === 2) delta *= 600;
-    if (event.ctrlKey) delta *= 4;
     zoomAt(event.clientX, event.clientY, viewport.zoom * Math.exp(-delta * 0.0012));
   };
 
   useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
     const handler = (event) => wheelHandlerRef.current(event);
-    stage.addEventListener('wheel', handler, { passive: false });
-    return () => stage.removeEventListener('wheel', handler);
-  }, []);
-
-  useEffect(() => {
-    const handler = (event) => {
-      if (modeRef.current === 'writing') return;
-      if (event.target.closest('.canvas-stage')) {
-        event.preventDefault();
-      }
-    };
-    window.addEventListener('wheel', handler, { passive: false });
-    return () => window.removeEventListener('wheel', handler);
+    window.addEventListener('wheel', handler, { passive: false, capture: true });
+    return () => window.removeEventListener('wheel', handler, { capture: true });
   }, []);
 
   const exportPdf = async () => {
